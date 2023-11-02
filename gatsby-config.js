@@ -1,0 +1,246 @@
+const meta = require("./gatsby-meta-config")
+
+const siteMetadata = {
+  title: meta.title,
+  description: meta.description,
+  author: meta.author,
+  siteUrl: meta.siteUrl,
+  lang: meta.lang,
+  postTitle: "All",
+  menuLinks: [
+    {
+      link: "/",
+      name: "Home",
+    },
+    {
+      link: "/about/",
+      name: "About",
+    },
+    {
+      link: meta.links.cv,
+      name: "CV",
+    },
+  ],
+}
+
+const corePlugins = [
+  {
+    resolve: `gatsby-plugin-s3`,
+    options: {
+      bucketName:"XXXXX",
+      acl: null
+    },
+  },
+  {
+    resolve: "gatsby-source-filesystem",
+    options: {
+      name: "src",
+      path: `${__dirname}/src`,
+    },
+  },
+  {
+    resolve: "gatsby-source-filesystem",
+    options: {
+      name: "images",
+      path: `${__dirname}/src/images`,
+    },
+  },
+]
+
+const devPlugins = [
+  {
+    resolve: "gatsby-plugin-alias-imports",
+    options: {
+      alias: {
+        Src: "src",
+        Components: "src/components",
+        Constants: "src/constants",
+        Hooks: "src/hooks",
+        Images: "src/images",
+        Layouts: "src/layouts",
+        Pages: "src/pages",
+        Posts: "content",
+        Stores: "src/stores",
+        Styles: "src/styles",
+        Templates: "src/templates",
+        Types: "src/types",
+        Utils: "src/utils",
+      },
+      extensions: ["js", "ts", "tsx"],
+    },
+  },
+  {
+    resolve: "gatsby-plugin-typography",
+    options: {
+      pathToConfigModule: "src/styles/typography",
+    },
+  },
+  "gatsby-plugin-typescript",
+  "gatsby-plugin-styled-components",
+]
+
+const imagePlugins = [
+  "gatsby-plugin-image",
+  "gatsby-plugin-sharp",
+  "gatsby-transformer-sharp",
+]
+
+const markdownPlugins = [
+  {
+    resolve: "gatsby-transformer-remark",
+    options: {
+      plugins: [
+          "gatsby-remark-code-titles",
+          "gatsby-remark-copy-linked-files",
+          "gatsby-remark-external-links",
+          "gatsby-remark-numbered-footnotes",
+          "gatsby-remark-social-cards",
+          "gatsby-remark-code-buttons",
+          "gatsby-remark-embedder",
+        "gatsby-remark-autolink-headers",
+        {
+          resolve: "gatsby-remark-images",
+          options: {
+            linkImagesToOriginal: false,
+            backgroundColor : "none",
+            withWebp: true
+
+          },
+        },
+        {
+          resolve: `gatsby-remark-prismjs`,
+          options: {
+            classPrefix: "language-",
+            inlineCodeMarker: null,
+            aliases: {},
+            showLineNumbers: false,
+            noInlineHighlight: false,
+            prompt: {
+              user: "root",
+              host: "localhost",
+              global: false,
+            },
+            // By default the HTML entities <>&'" are escaped.
+            // Add additional HTML escapes by providing a mapping
+            // of HTML entities and their escape value IE: { '}': '&#123;' }
+            escapeEntities: {},
+          },
+        },
+      ],
+    },
+  },
+]
+
+const searchPlugins = [
+  "gatsby-plugin-sitemap",
+  {
+    resolve: `gatsby-plugin-google-gtag`,
+    options: {
+      // You can add multiple tracking ids and a pageview event will be fired for all of them.
+      trackingIds: [
+        "G-XXXXXXXXX" // Google Analytics / GA
+      ],
+    },
+  },
+  {
+    resolve: 'gatsby-plugin-robots-txt',
+      options: {
+        host: 'https://sylvain.bruas.fr',
+        sitemap: 'https://sylvain.bruas.fr/sitemap-index.xml',
+        policy: [{userAgent: '*', allow: '/', disallow: ['/us/404.html', 
+        '/fr/fr/404.html', 
+        '/fr/us/404.html', 
+        '/fr/404.html', 
+        '/404/']}]
+        
+      }
+    },
+  {
+    resolve: `gatsby-plugin-feed`,
+    options: {
+      query: `
+        {
+          site {
+            siteMetadata {
+              title
+              description
+              siteUrl
+              site_url: siteUrl
+            }
+          }
+        }
+      `,
+      feeds: [
+        {
+          serialize: ({ query: { site, allMarkdownRemark } }) => {
+            return allMarkdownRemark.edges.map(edge => {
+              return Object.assign({}, edge.node.frontmatter, {
+                description: edge.node.excerpt,
+                date: edge.node.frontmatter.date,
+                url: site.siteMetadata.siteUrl + edge.node.fields.slug,
+                guid: site.siteMetadata.siteUrl + edge.node.fields.slug,
+                custom_elements: [{ "content:encoded": edge.node.html }],
+              })
+            })
+          },
+          query: `
+            {
+              allMarkdownRemark(
+                filter: {fileAbsolutePath: {regex: "/(posts/blog)/"}, frontmatter: {published: {eq: "true"}}}
+                sort: {frontmatter: {date: DESC}}
+              ) {
+                edges {
+                  node {
+                    excerpt
+                    html
+                    fields { slug }
+                    frontmatter {
+                      title
+                      date
+                    }
+                  }
+                }
+              }
+            }
+          `,
+          output: "/rss.xml",
+          title: `${meta.title}'s RSS Feed`,
+        },
+      ],
+    },
+  },
+]
+
+const pwaPlugins = [
+  {
+    resolve: "gatsby-plugin-manifest",
+    options: {
+      name: meta.title,
+      short_name: meta.title,
+      description: meta.description,
+      lang: meta.lang,
+      start_url: "/",
+      background_color: "#ffffff",
+      theme_color: "#ffffff",
+      display: "standalone",
+      icon: meta.favicon,
+      icon_options: {
+        purpose: "any maskable",
+      },
+    },
+  },
+  "gatsby-plugin-offline"
+]
+
+module.exports = {
+  graphqlTypegen: false,
+  siteMetadata,
+  plugins: [
+    ...corePlugins,
+    ...devPlugins,
+    ...imagePlugins,
+    ...markdownPlugins,
+    ...searchPlugins,
+    ...pwaPlugins,
+  ],
+}
